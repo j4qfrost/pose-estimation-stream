@@ -1,0 +1,11 @@
+FROM jrottenberg/ffmpeg:3.3-ubuntu
+
+RUN apt-get update && apt-get install -y python3 python3-pip libsm6 libxext6 libxrender1
+
+RUN pip3 install opencv-python gluoncv mxnet
+
+COPY backend /src
+WORKDIR /src
+
+ENTRYPOINT ["python3"]
+CMD [ "pose_estimation_consumer.py", "hls/test.m3u8"]
