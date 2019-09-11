@@ -1,20 +1,28 @@
 import subprocess, sys, time
 
-import json
+import json, numpy, mxnet
 
 import pose_estimation
 
 FFMPEG= 'ffmpeg'
 FFPROBE = 'ffprobe'
+# f = open('blah.txt', 'w')
+# f.write('jdjdjdjd')
+# f.close()
+
 
 def get_stream_resolution(stream_name):
 	metadata = {}
 	while 'streams' not in metadata:
-		info = subprocess.Popen([FFPROBE, '-v', '-quiet', '-print_format', 'json', '-show_format', '-show_streams', stream_name],
+		info = subprocess.Popen([FFPROBE, '-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', 'hls/test.m3u8'],
 			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		out, err = info.communicate()
 		if out:
 			metadata = json.loads(out.decode('utf-8'))
+		f = open('blah.txt', 'w')
+		f.write(str(err))
+		f.write(str(out))
+		f.close()
 		time.sleep(5)
 
 	return metadata['streams'][0]['width'], metadata['streams'][0]['height']
@@ -22,7 +30,7 @@ def get_stream_resolution(stream_name):
 def get_frame_from_stream(resolution, pipe):
 	width, height = resolution
 	raw_image = pipe.stdout.read(width * height *3) # read 432*240*3 bytes (= 1 frame)
-	return numpy.fromstring(raw_image, dtype='uint8').reshape((width, height, 3))
+	return mxnet.nd.array(numpy.fromstring(raw_image, dtype='uint8').reshape((width, height, 3)))
 
 def main(argv):
 	stream_name = argv[1]

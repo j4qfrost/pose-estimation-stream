@@ -4,8 +4,11 @@ RUN apt-get update && apt-get install -y python3 python3-pip libsm6 libxext6 lib
 
 RUN pip3 install opencv-python gluoncv mxnet
 
+RUN apt-get -y install fontconfig fontconfig-config libfontconfig1
+
 COPY backend /src
 WORKDIR /src
 
-ENTRYPOINT ["python3"]
-CMD [ "pose_estimation_consumer.py", "hls/test.m3u8"]
+ENV FONTCONFIG_PATH /etc/fonts
+
+ENTRYPOINT ["python3", "pose_estimation_consumer.py", "hls/test.m3u8"]

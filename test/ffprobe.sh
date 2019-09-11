@@ -1,0 +1,1 @@
+ffprobe -print_format json -show_format -show_streams "../mounts/var/lib/streaming/hls/test.m3u8"
