@@ -1,14 +1,29 @@
-FROM jrottenberg/ffmpeg:3.3-ubuntu
+FROM jrottenberg/ffmpeg:3.3-ubuntu as ffmpeg
 
-RUN apt-get update && apt-get install -y python3 python3-pip libsm6 libxext6 libxrender1
+FROM python:3.7.4
 
-RUN pip3 install opencv-python gluoncv mxnet
+COPY --from=ffmpeg /usr/local /usr/local/
+
+RUN apt-get update && apt-get install -y libsm6 libxext6 libxrender1 
+
+RUN apt-get -y install autoconf automake build-essential libass-dev \
+	libfreetype6-dev libsdl1.2-dev libtheora-dev libtool libva-dev \
+	libvdpau-dev libvorbis-dev libxcb1-dev libxcb-shm0-dev libxcb-xfixes0-dev \
+	pkg-config texinfo zlib1g-dev
+
+RUN pip install opencv-python gluoncv mxnet python-twitch-stream
 
 RUN apt-get -y install fontconfig fontconfig-config libfontconfig1
 
-COPY backend /src
+RUN mkdir /src
+COPY backend/pose_estimation.py /src/pose_estimation.py
 WORKDIR /src
+
+RUN python pose_estimation.py
+
+COPY backend /src
+
 
 ENV FONTCONFIG_PATH /etc/fonts
 
-ENTRYPOINT ["python3", "pose_estimation_consumer.py", "hls/test.m3u8"]
+ENTRYPOINT ["python", "pose_estimation_consumer.py", "hls/test.m3u8"]
