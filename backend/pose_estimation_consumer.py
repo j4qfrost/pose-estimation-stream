@@ -2,7 +2,7 @@ import subprocess, sys, time
 
 import json, numpy, mxnet
 
-from queue import Queue
+# from queue import Queue
 
 import asyncio
 
@@ -31,7 +31,25 @@ def get_stream_resolution(stream_name):
 def get_frame_from_stream(resolution, pipe):
 	width, height = resolution
 	raw_image = pipe.stdout.read(width * height *3) # read 432*240*3 bytes (= 1 frame)
-	return mxnet.nd.array(numpy.fromstring(raw_image, dtype='uint8').reshape((height, width, 3)))
+	if len(raw_image) == 0:
+		sys.stdout.flush()
+		print('asdads')
+		return mxnet.nd.zero((height, width, 3))
+	return mxnet.nd.array(numpy.frombuffer(raw_image, dtype='uint8').reshape((height, width, 3)))
+
+async def loop_queue_frame(resolution, stream, L):
+	# while True:
+	# 	frame = get_frame_from_stream(resolution, stream)
+	# 	if frame is not None:
+	# 		await L.put(frame)
+
+	while True:
+		frame = get_frame_from_stream(resolution, stream)
+		frame = pose_estimation.process_pose_frame(frame)
+
+		if frame is not None:
+			L.put(frame)
+	
 
 async def main(argv):
 	stream_name = argv[1]
@@ -43,17 +61,16 @@ async def main(argv):
 		'-pix_fmt', 'bgr24',
 		'-vcodec', 'rawvideo', '-'],
 		stdout = subprocess.PIPE)
-	L = Queue()
-	stream_twitch.loop_send_frame('live_173288790_pEOfgLFUAfocVRZdAQ1D8bUubjL4OY', resolution, L)
+	L = asyncio.Queue()
+	stream_task = asyncio.create_task(loop_queue_frame(resolution, stream, L))
 	# while True:
 	# 	frame = get_frame_from_stream(resolution, stream)
 	# 	frame = pose_estimation.process_pose_frame(frame)
 
 	# 	if frame is not None:
 	# 		L.put(frame)
-	while True:
-		frame = get_frame_from_stream(resolution, stream)
-		L.put(frame)
+	
+	await stream_twitch.loop_send_frame('live_173288790_pEOfgLFUAfocVRZdAQ1D8bUubjL4OY', resolution, L)
 
 if __name__ == '__main__':
 	asyncio.run(main(sys.argv))
