@@ -2,8 +2,6 @@ import subprocess, sys, time
 
 import json, numpy, mxnet
 
-# from queue import Queue
-
 import asyncio
 
 import cv2
@@ -11,16 +9,11 @@ import pose_estimation, stream_twitch
 
 FFMPEG= 'ffmpeg'
 FFPROBE = 'ffprobe'
-# f = open('blah.txt', 'w')
-# f.write('jdjdjdjd')
-# f.close()
-
 
 def get_stream_resolution(stream_name):
 	metadata = {}
 	while 'streams' not in metadata:
-
-		info = subprocess.run([FFPROBE, '-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', '../mounts/var/lib/streaming/hls/test.m3u8'],
+		info = subprocess.run([FFPROBE, '-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', './hls/test.m3u8'],
 			capture_output=True)
 		out = info.stdout
 		if out:
@@ -32,8 +25,8 @@ def get_stream_resolution(stream_name):
 def get_frame_from_stream(resolution, pipe):
 	width, height = resolution
 	raw_image = pipe.stdout.read(width * height *3) # read 432*240*3 bytes (= 1 frame)
-	# if len(raw_image) == 0:
-	# 	return mxnet.nd.zeros((height, width, 3))
+	if len(raw_image) == 0:
+		return None
 	# return mxnet.nd.array(numpy.frombuffer(raw_image, dtype='uint8').reshape((height, width, 3)))
 	return numpy.frombuffer(raw_image, dtype='uint8').reshape((height, width, 3))
 	
@@ -41,20 +34,12 @@ async def loop_queue_frame(resolution, stream, L):
 	try:
 		while True:
 			frame = get_frame_from_stream(resolution, stream)
-			# frame = pose_estimation.process_pose_frame(frame)
+			# frame = pose_estimation.process_pose_frame(frame, resolution)
 			if frame is not None:
 				print(f'Queuing frame... {L.qsize()}')
 				await L.put(frame)
 	except Exception as e:
 		raise
-
-
-	# while True:
-	# 	frame = get_frame_from_stream(resolution, stream)
-	# 	frame = pose_estimation.process_pose_frame(frame)
-	# 	if frame is not None:
-	# 		print(L.qsize())
-	# 		await L.put(frame)
 
 async def save_image(L):
 	print('working')

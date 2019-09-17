@@ -12,7 +12,12 @@ pose_net = model_zoo.get_model('simple_pose_resnet18_v1b', pretrained=True)
 
 detector.reset_class(["person"], reuse_weights=['person'])
 
-def process_pose_frame(frame):
+def process_pose_frame(np_frame, resolution):
+	width, height = resolution
+	if np_frame is None:
+	 	return mxnet.nd.zeros((height, width, 3))
+	
+	frame = mxnet.nd.array(np_frame)
 	x, img = data.transforms.presets.ssd.transform_test(frame, short=512)
 
 	class_IDs, scores, bounding_boxs = detector(x)
@@ -25,11 +30,8 @@ def process_pose_frame(frame):
 	predicted_heatmap = pose_net(pose_input)
 	pred_coords, confidence = heatmap_to_coord(predicted_heatmap, upscale_bbox)
 
-	## (4) Display 
 	for j in range(len(pred_coords)):
 		for i in range(len(pred_coords[0])):
-			#print(class_IDs.reshape(-1))
-			#print(scores.reshape(-1))
 			x, y = pred_coords[j][i].astype(int).asnumpy()
 			cv2.circle(img, (x,y), 2, (0, 255, 0), thickness=-1, lineType=cv2.FILLED)
 			# cv2.putText(img, tag, (x, y-20),  cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,255), 1)
