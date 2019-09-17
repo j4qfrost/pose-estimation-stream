@@ -14,13 +14,13 @@ services:
       - "1935:1935"
       - "8080:8080"
 
-  streaming-consumer:
-    build:
-      context: .
-      dockerfile: Dockerfile-consumer
-    container_name: streaming-consumer
-    volumes:
-      - ./mounts/var/lib/streaming/hls:/src/hls:Z
+  # streaming-consumer:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile-consumer
+  #   container_name: streaming-consumer
+  #   volumes:
+  #     - ./mounts/var/lib/streaming/hls:/src/hls:Z
 
   # serveo:
   #   image: taichunmin/serveo:latest

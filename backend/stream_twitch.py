@@ -1,5 +1,5 @@
 from twitchstream.outputvideo import TwitchBufferedOutputStream
-import asyncio, sys
+import asyncio, sys, cv2, time
 
 async def loop_send_frame(streamkey, resolution, L):
     # load two streams:
@@ -11,18 +11,17 @@ async def loop_send_frame(streamkey, resolution, L):
             fps=30.,
             enable_audio=False,
             verbose=False) as videostream:
-
-        # The main loop to create videos
-        while True:
-            # If there are not enough video frames left,
-            # add some more.
-            if videostream.get_video_frame_buffer_state() < 30:
+        try:
+                    # The main loop to create videos
+            while True:
+                # If there are not enough video frames left,
+                # add some more.
+                print(f'Sending frame... {L.qsize()}')
                 frame = await L.get()
                 if frame.size > 0:
                     videostream.send_video_frame(frame)
-            else:
-                sys.stdout.flush()
-                print(L.qsize())
-                await asyncio.sleep(0.001)
-            sys.stdout.flush()
-            print(L.qsize())
+                L.task_done()
+
+
+        except Exception as e:
+            raise e

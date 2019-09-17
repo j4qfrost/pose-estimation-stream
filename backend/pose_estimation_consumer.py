@@ -6,6 +6,7 @@ import json, numpy, mxnet
 
 import asyncio
 
+import cv2
 import pose_estimation, stream_twitch
 
 FFMPEG= 'ffmpeg'
@@ -19,7 +20,7 @@ def get_stream_resolution(stream_name):
 	metadata = {}
 	while 'streams' not in metadata:
 
-		info = subprocess.run([FFPROBE, '-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', 'hls/test.m3u8'],
+		info = subprocess.run([FFPROBE, '-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', '../mounts/var/lib/streaming/hls/test.m3u8'],
 			capture_output=True)
 		out = info.stdout
 		if out:
@@ -31,25 +32,39 @@ def get_stream_resolution(stream_name):
 def get_frame_from_stream(resolution, pipe):
 	width, height = resolution
 	raw_image = pipe.stdout.read(width * height *3) # read 432*240*3 bytes (= 1 frame)
-	if len(raw_image) == 0:
-		sys.stdout.flush()
-		print('asdads')
-		return mxnet.nd.zero((height, width, 3))
-	return mxnet.nd.array(numpy.frombuffer(raw_image, dtype='uint8').reshape((height, width, 3)))
-
+	# if len(raw_image) == 0:
+	# 	return mxnet.nd.zeros((height, width, 3))
+	# return mxnet.nd.array(numpy.frombuffer(raw_image, dtype='uint8').reshape((height, width, 3)))
+	return numpy.frombuffer(raw_image, dtype='uint8').reshape((height, width, 3))
+	
 async def loop_queue_frame(resolution, stream, L):
+	try:
+		while True:
+			frame = get_frame_from_stream(resolution, stream)
+			# frame = pose_estimation.process_pose_frame(frame)
+			if frame is not None:
+				print(f'Queuing frame... {L.qsize()}')
+				await L.put(frame)
+	except Exception as e:
+		raise
+
+
 	# while True:
 	# 	frame = get_frame_from_stream(resolution, stream)
+	# 	frame = pose_estimation.process_pose_frame(frame)
 	# 	if frame is not None:
+	# 		print(L.qsize())
 	# 		await L.put(frame)
 
-	while True:
-		frame = get_frame_from_stream(resolution, stream)
-		frame = pose_estimation.process_pose_frame(frame)
-
-		if frame is not None:
-			L.put(frame)
-	
+async def save_image(L):
+	print('working')
+	if L.qsize() == 0:
+		await asyncio.sleep(1)
+		await save_image(L)
+	img = await L.get_nowait()
+	print(L.qsize())
+	cv2.imwrite('test.jpg', img)
+	L.task_done()
 
 async def main(argv):
 	stream_name = argv[1]
@@ -61,8 +76,13 @@ async def main(argv):
 		'-pix_fmt', 'bgr24',
 		'-vcodec', 'rawvideo', '-'],
 		stdout = subprocess.PIPE)
-	L = asyncio.Queue()
-	stream_task = asyncio.create_task(loop_queue_frame(resolution, stream, L))
+	L = asyncio.Queue(maxsize=5)
+	tasks = []
+	tasks.append(asyncio.create_task(stream_twitch.loop_send_frame('live_173288790_pEOfgLFUAfocVRZdAQ1D8bUubjL4OY', resolution, L)))
+	# tasks.append(asyncio.create_task(save_image(L)))
+	tasks.append(asyncio.create_task(loop_queue_frame(resolution, stream, L)))
+	await asyncio.gather(*tasks)
+
 	# while True:
 	# 	frame = get_frame_from_stream(resolution, stream)
 	# 	frame = pose_estimation.process_pose_frame(frame)
@@ -70,7 +90,5 @@ async def main(argv):
 	# 	if frame is not None:
 	# 		L.put(frame)
 	
-	await stream_twitch.loop_send_frame('live_173288790_pEOfgLFUAfocVRZdAQ1D8bUubjL4OY', resolution, L)
-
 if __name__ == '__main__':
 	asyncio.run(main(sys.argv))
