@@ -40,7 +40,9 @@ def loop_send_frame(streamkey, resolution, stream, pose_processor):
 		while True:
 			frame = get_frame_from_stream(resolution, stream)
 			if frame is not None:
+				print(frame.size)
 				frame = pose_processor.process_pose_frame(frame, resolution)
+				print(frame.size)
 				videostream.send_video_frame(frame)
 	except Exception as e:
 		raise
