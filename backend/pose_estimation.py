@@ -1,14 +1,17 @@
 import time
 
-import cairo
-
 class PoseProcessor:
 	"""docstring for PoseProcessor"""
 	def __init__(self, framework):
 		super(PoseProcessor, self).__init__()
 		self.framework = framework
+		if framework == 'tf':
+			self.process_pose_frame, self.gpu = build_pose_frame_function_tf()
 		if framework == 'gluon':
 			self.process_pose_frame, self.gpu = build_pose_frame_function_gluon()
+
+def build_pose_frame_function_tf():
+	pass
 
 def build_pose_frame_function_gluon():
 	from gluoncv import model_zoo, data, utils
@@ -39,7 +42,7 @@ def build_pose_frame_function_gluon():
 		predicted_heatmap = pose_net(pose_input)
 		pred_coords, confidence = heatmap_to_coord(predicted_heatmap, upscale_bbox)
 		img = cv_plot_keypoints(img, pred_coords, confidence, class_IDs, bounding_boxs, scores, box_thresh=0.5, keypoint_thresh=0.2, scale=1.0, **kwargs)
-
+		print(img.size)
 		# for j in range(len(pred_coords)):
 		# 	for i in range(len(pred_coords[0])):
 		# 		x, y = pred_coords[j][i].astype(int).asnumpy()
