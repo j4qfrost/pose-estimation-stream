@@ -105,3 +105,4 @@ venv.bak/
 
 hls/
 *.mp4
+_*

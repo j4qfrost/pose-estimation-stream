@@ -1,0 +1,32 @@
+FROM nvidia/cuda:10.0-devel as ffmpeg
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        git \
+        libgl1-mesa-glx \
+        make \
+        nasm && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 --branch n3.4.6 https://github.com/ffmpeg/ffmpeg ffmpeg && \
+    cd ffmpeg && \
+    ./configure --enable-cuda --enable-cuvid --enable-nvenc --enable-nonfree --enable-libnpp \
+                --extra-cflags=-I/usr/local/cuda/include \
+                --extra-ldflags=-L/usr/local/cuda/lib64 \
+                --prefix=/usr/local/ffmpeg --enable-shared --disable-static \
+                --disable-manpages --disable-doc --disable-podpages && \
+                make -j"$(nproc)" install && \
+                ldconfig
+
+
+FROM aminehy/ai-lab
+
+RUN pip install python-twitch-stream
+RUN pip install git+https://github.com/Knights-of-the-Functional-Calculus/posenet-python.git@0.0.3
+
+COPY --from=ffmpeg /usr/local/ffmpeg /usr/local/
+COPY --from=ffmpeg /usr/local/cuda-10.0 /usr/local/cuda-10.0
+
+RUN unlink /usr/local/cuda && ln -s /usr/local/cuda-10.0 /usr/local/cuda
+
+ENV NVIDIA_DRIVER_CAPABILITIES $NVIDIA_DRIVER_CAPABILITIES,video
