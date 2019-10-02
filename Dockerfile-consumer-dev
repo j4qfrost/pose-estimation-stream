@@ -21,8 +21,9 @@ RUN git clone --depth 1 --branch n3.4.6 https://github.com/ffmpeg/ffmpeg ffmpeg 
 
 FROM aminehy/ai-lab
 
-RUN pip install python-twitch-stream
-RUN pip install git+https://github.com/Knights-of-the-Functional-Calculus/posenet-python.git@0.0.3
+# RUN pip install git+https://github.com/Knights-of-the-Functional-Calculus/posenet-python.git@0.0.3
+RUN pip install git+https://github.com/Knights-of-the-Functional-Calculus/posenet-pytorch.git@0.0.2
+RUN pip install git+https://github.com/Knights-of-the-Functional-Calculus/python-twitch-stream@0.0.4
 
 COPY --from=ffmpeg /usr/local/ffmpeg /usr/local/
 COPY --from=ffmpeg /usr/local/cuda-10.0 /usr/local/cuda-10.0
